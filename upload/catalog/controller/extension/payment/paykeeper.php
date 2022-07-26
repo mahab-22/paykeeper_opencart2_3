@@ -240,7 +240,9 @@ class ControllerExtensionPaymentPaykeeper extends Controller {
         $this->load->model('checkout/order');
 		
 		$order_info = $this->model_checkout_order->getOrder($order_id);
-
+        // echo '<pre>';
+        // print_r($this->language->get('text_handling'));
+        // die;
         //GENERATING PAYKEEPER PAYMENT FORM
         $pk_obj = new PaykeeperPayment();
 
@@ -279,7 +281,7 @@ class ControllerExtensionPaymentPaykeeper extends Controller {
                 $tax_amount = $item['price']*($tax_rate/100);
             }
 
-            $price = floatval($item['price']+$tax_amount);
+            $price = floatval(($item['price']+$tax_amount)*$order_info['currency_value']);
 
             $quantity = floatval($item['quantity']);
             if ($quantity == 1 && $pk_obj->single_item_index < 0)
@@ -303,7 +305,7 @@ class ControllerExtensionPaymentPaykeeper extends Controller {
             );
 
             $shipping_tax_amount = $this->session->data['shipping_method']['cost']*($shipping_tax_rate/100);
-            $pk_obj->setShippingPrice(floatval($this->session->data['shipping_method']['cost']+$shipping_tax_amount));
+            $pk_obj->setShippingPrice(floatval(($this->session->data['shipping_method']['cost']+$shipping_tax_amount)*$order_info['currency_value']));
             $shipping_name = $this->session->data['shipping_method']['title'];
             $shipping_taxes = $pk_obj->setTaxes($shipping_tax_rate,true);
             if (!$pk_obj->checkDeliveryIncluded($pk_obj->getShippingPrice(), $shipping_name)
@@ -313,6 +315,13 @@ class ControllerExtensionPaymentPaykeeper extends Controller {
                             $pk_obj->getShippingPrice(), 1, $pk_obj->getShippingPrice(), $shipping_taxes["tax"]);
                 $pk_obj->delivery_index = count($pk_obj->getFiscalCart())-1;
             }
+        }
+        if ($this->config->get('handling_status'))
+        {
+            $taxes = array("tax" => "none", "tax_sum" => 0);
+            $taxes = $pk_obj->setTaxes($this->tax->getRates($this->config->get('handling_fee'), $this->config->get('handling_tax_class_id')));
+            $pk_obj->updateFiscalCart($pk_obj->getPaymentFormType(),
+            $this->language->get('text_handling'), $this->config->get('handling_fee'), 1, $this->config->get('handling_fee'),$taxes["tax"] );
         }
         //set discounts
         $pk_obj->setDiscounts(array_key_exists("coupon", $this->session->data));
@@ -349,20 +358,15 @@ class ControllerExtensionPaymentPaykeeper extends Controller {
                 <input type="submit" id="button-confirm" value="Оплатить"/>
                 </form>
                 <script text="javascript">
-                    
-                window.onload=function() {
+                window.onload=function() 
+                {
                     setTimeout(sendForm, 2000);
                 }   
-                function sendForm() {
-                    $.ajax({ 
-                        type: "get",
-                        url: "index.php?route=extension/payment/paykeeper/confirm",
-                        success: function() {
-                            $("#pay_form").submit();
-                        }       
-                    });
-                }
-                $("#button-confirm").bind("click", sendForm());
+                function sendForm() 
+                {
+                    document.querySelector("#pay_form").submit();
+                }          
+                document.querySelector("#button-confirm").onclick = document.querySelector("#pay_form").submit;
                 </script>';
 
         }
@@ -419,5 +423,6 @@ class ControllerExtensionPaymentPaykeeper extends Controller {
         return $form;
     }
 }
+
 
 
