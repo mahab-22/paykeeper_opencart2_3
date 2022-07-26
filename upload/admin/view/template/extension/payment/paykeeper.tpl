@@ -105,7 +105,16 @@
             </div>
           </div>
 		  <?php
-		  $pageURL = (@$_SERVER["HTTPS"] == "on") ? "https://" : "http://";
+              if (isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] == 'on' || $_SERVER['HTTPS'] == 1) ||
+        isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') 
+        {
+            $pageURL = 'https://';
+        }
+        else 
+        {
+            $pageURL = 'http://';
+        }
+
 		  ?>
 		  <div class="form-group">
             <label class="col-sm-2 control-label" for="input-callback"><?php echo $entry_callback; ?></label>
@@ -140,5 +149,6 @@
   </div>
 </div>
 <?php echo $footer; ?>
+
 
 
